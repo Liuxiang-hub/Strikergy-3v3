@@ -3,7 +3,7 @@ brain_node:
     game:
       team_id: 70 # consistant with GameControl
       player_id: 1 # 1 | 2 | 3
-      field_type: "robo_league" # adult_size | kid_size | robo_league
+      field_type: "adult_size" # adult_size | kid_size | robo_league
       player_role: "striker" # striker | goal_keeper
       player_start_pos: "right" # right | left
       treat_person_as_robot: false # 是否将人类视为机器人, 用于调试. !!!! 正式比赛时, 必须设置为 false !!!!

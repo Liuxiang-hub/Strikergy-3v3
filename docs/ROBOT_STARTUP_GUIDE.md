@@ -53,7 +53,7 @@ grep -A 8 "game:" src/brain/config/config.yaml
 - 1、2 号使用 `player_role: "striker"`。
 - 3 号使用 `player_role: "goal_keeper"`。
 - `fixed_goalie_player_id` 应为 `3`。
-- `field_type` 必须与实际场地匹配；当前使用 `robo_league`。
+- `field_type` 必须与实际场地匹配；当前使用 `adult_size`（14.16 m × 9.22 m）。
 
 ## 三、首次部署或代码更新后编译
 
@@ -224,4 +224,3 @@ ps -ef | grep -E "vision_node|brain_node|game_controller" | grep -v grep
 - [ ] `INITIAL → READY → SET → PLAY → END` 全流程测试通过。
 - [ ] `LT + X` 急停式策略停止经过实测，现场操作员清楚按键。
 - [ ] 三机通信、双前锋分工和固定守门员行为经过空场验证。
-
