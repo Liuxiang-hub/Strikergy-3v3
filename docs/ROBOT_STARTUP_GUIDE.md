@@ -5,8 +5,8 @@
 | 机器人 | `player_id` | `player_role` | 职责 |
 | --- | ---: | --- | --- |
 | 1 号 | `1` | `striker` | 主前锋，优先追球和进攻 |
-| 2 号 | `2` | `striker` | 第二前锋，主前锋控球时主动让位和接应 |
-| 3 号 | `3` | `goal_keeper` | 固定守门员 |
+| 2 号 | `2` | `supporter` | 支援前锋，主攻手控球时主动让位和接应 |
+| 3 号 | `3` | `keeper` | 固定守门员 |
 
 > 安全要求：机器人必须放在平整、宽阔、无人的区域，操作员全程拿着遥控器，并能随时按 `LT + X` 停止自动策略。第一次运行、修改策略或更新固件后，先单机空场测试，不要直接三机同时上场。
 
@@ -50,8 +50,9 @@ grep -A 8 "game:" src/brain/config/config.yaml
 - 三台机器人的 `team_id` 必须一致，且与裁判机设置一致；当前默认值为 `70`。
 - `number_of_players` 应为 `3`。
 - 1、2、3 号的 `player_id` 必须分别为 `1`、`2`、`3`，不能重复。
-- 1、2 号使用 `player_role: "striker"`。
-- 3 号使用 `player_role: "goal_keeper"`。
+- 1 号使用 `player_role: "striker"`。
+- 2 号使用 `player_role: "supporter"`。
+- 3 号使用 `player_role: "keeper"`。
 - `fixed_goalie_player_id` 应为 `3`。
 - `field_type` 必须与实际场地匹配；当前使用 `adult_size`（14.16 m × 9.22 m）。
 
@@ -136,7 +137,7 @@ ros2 topic info -v /robocup/game_controller
 | `INITIAL` | 在入场位置扫描场地、建立绝对定位 |
 | `READY` | 根据 `player_id` 和角色走到本机开球站位，并持续修正定位 |
 | `SET` | 停止行走、观察足球、等待开赛 |
-| `PLAY` | 1、2 号执行双前锋分工，3 号执行固定守门员策略 |
+| `PLAY` | 1 号 `striker` 主攻，2 号 `supporter` 接应，3 号 `keeper` 守门 |
 | `END` | 停止运动 |
 | 罚下/替补 | 停止；重新放回边线后需要再次定位 |
 
@@ -206,7 +207,7 @@ ps -ef | grep -E "vision_node|brain_node|game_controller" | grep -v grep
 
 - 检查三台机器人的 `player_id` 是否唯一。
 - 检查 `number_of_players: 3`、`enable_com: True` 和 `fixed_goalie_player_id: 3`。
-- 检查 1、2 号是否为 `striker`，3 号是否为 `goal_keeper`。
+- 检查 1 号是否为 `striker`、2 号是否为 `supporter`、3 号是否为 `keeper`。
 - 确认三台机器人能互相通信，且裁判机 Team ID 一致。
 - 确认没有误按 `LT + Y` 改变运行时角色。
 
@@ -216,7 +217,7 @@ ps -ef | grep -E "vision_node|brain_node|game_controller" | grep -v grep
 - [ ] 机器人、裁判机和操作电脑在同一网络。
 - [ ] Team ID 与裁判机一致。
 - [ ] Player ID 分别为 1、2、3，无重复。
-- [ ] 1、2 号为前锋，3 号为守门员。
+- [ ] 角色分别为 1 号 `striker`、2 号 `supporter`、3 号 `keeper`。
 - [ ] 三台机器人的代码提交版本一致。
 - [ ] 真机模型、SDK、固件与 Demo 1.7 环境匹配。
 - [ ] 编译成功，三个核心节点均正常运行。

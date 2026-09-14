@@ -183,7 +183,8 @@ void BrainCommunication::broadcastTeamCommunication()
         msg.communicationId = _team_communication_msg_id++;
         msg.teamId = brain->config->teamId;
         msg.playerId = brain->config->playerId;
-        msg.playerRole = brain->tree->getEntry<string>("player_role") == "striker" ? 1 : 2;
+        const string role = brain->tree->getEntry<string>("player_role");
+        msg.playerRole = role == "striker" ? 1 : (role == "keeper" ? 2 : 3);
         msg.isAlive = brain->data->tmImAlive;
         msg.isLead = brain->data->tmImLead;
         msg.isInVisualKick = brain->data->tmImInVisualKick;
@@ -322,7 +323,9 @@ void BrainCommunication::spinTeamCommunicationReceiver()
         log(format("TMID: %d, alive: %d, lead: %d, cost: %.1f, CmdId: %d, Cmd: %d",
                     msg.playerId, msg.isAlive, msg.isLead, msg.cost, msg.cmdId, msg.cmd));
         TMStatus &tmStatus = brain->data->tmStatus[tmIdx];
-        tmStatus.role = msg.playerRole == 1 ? "striker" : "goal_keeper";
+        tmStatus.role = msg.playerRole == 1
+            ? "striker"
+            : (msg.playerRole == 2 ? "keeper" : "supporter");
         tmStatus.isAlive = msg.isAlive;
         tmStatus.ballDetected = msg.ballDetected;
         tmStatus.ballLocationKnown = msg.ballLocationKnown;

@@ -25,7 +25,7 @@
 
             </ReactiveSequence>
 
-            <ReactiveSequence _while="control_state==3 && (!go_manual)" name="包一层用于控制策略的开关, 3 为手柄 LT+B 的状态, 2 为 LT+A, 1 为 LT+X">
+            <ReactiveSequence _while="control_state==3 &amp;&amp; (!go_manual)" name="包一层用于控制策略的开关, 3 为手柄 LT+B 的状态, 2 为 LT+A, 1 为 LT+X">
                 
                 <ReactiveSequence _while="gc_is_under_penalty" name="当前处于罚时状态, 或替补状态">
                     <PrintMsg msg="当前处于罚时状态, 或替补状态"/>
@@ -50,8 +50,8 @@
                         <ReactiveSequence _while="gc_game_state=='READY'" name="走到场内自己的起始位置">
                             <PrintMsg msg="走到场内自己的起始位置"/>
                             <CamScanField />
-                            <MoveToPoseOnField x="-2.0" _while="player_role == 'striker'" vtheta_limit="2.0"  vx_limit="1.2" />
-                            <MoveToPoseOnField x="-5.5" _while="player_role == 'goal_keeper'" vtheta_limit="2.0"  vx_limit="1.2" />
+                        <MoveToPoseOnField x="-2.0" _while="player_role == 'striker' || player_role == 'supporter'" vtheta_limit="2.0"  vx_limit="1.2" />
+                        <MoveToPoseOnField x="-5.5" _while="player_role == 'keeper'" vtheta_limit="2.0"  vx_limit="1.2" />
                             <SelfLocate mode="trust_direction" />
                             <WaveHand _while="we_just_scored" action="start" />
                         </ReactiveSequence>
@@ -65,8 +65,8 @@
 
                         <ReactiveSequence _while="gc_game_state=='PLAY'" name="比赛">
                             <PrintMsg msg="比赛"/>
-                            <SubTree ID="StrikerPlay" _autoremap="true" _while="player_role == 'striker'" />
-                            <SubTree ID="GoalKeeperPlay" _autoremap="true" _while="player_role == 'goal_keeper'" />
+                            <SubTree ID="StrikerPlay" _autoremap="true" _while="player_role == 'striker' || player_role == 'supporter'" />
+                            <SubTree ID="GoalKeeperPlay" _autoremap="true" _while="player_role == 'keeper'" />
                         </ReactiveSequence>
 
                         <ReactiveSequence _while="gc_game_state=='END'" name="比赛结束">
@@ -76,15 +76,15 @@
 
                     </ReactiveSequence>
 
-                    <ReactiveSequence _while="gc_game_sub_state_type=='FREE_KICK' && gc_game_state=='PLAY'" name="开任意球">
+                    <ReactiveSequence _while="gc_game_sub_state_type=='FREE_KICK' &amp;&amp; gc_game_state=='PLAY'" name="开任意球">
                         <PrintMsg msg="开任意球"/>
                         <ReactiveSequence _while="gc_game_sub_state=='STOP'">
                             <SubTree ID="CamFindAndTrackBall" _autoremap="true" />
                             <SetVelocity />
                         </ReactiveSequence>
                         <ReactiveSequence _while="gc_game_sub_state=='GET_READY'">
-                            <SubTree ID="StrikerFreekick" _autoremap="true" _while="player_role == 'striker'" />
-                            <SubTree ID="GoalKeeperFreekick" _autoremap="true" _while="player_role == 'goal_keeper'"/>
+                            <SubTree ID="StrikerFreekick" _autoremap="true" _while="player_role == 'striker' || player_role == 'supporter'" />
+                            <SubTree ID="GoalKeeperFreekick" _autoremap="true" _while="player_role == 'keeper'"/>
                         </ReactiveSequence>
                         <ReactiveSequence _while="gc_game_sub_state=='SET'">
                             <!-- <PrintMsg msg="Defense freekick. State = set" /> -->

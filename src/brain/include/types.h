@@ -196,7 +196,7 @@ struct RobotRecoveryStateData {
 
 // 用于存储队友间通讯
 struct TMStatus {
-    string role = "not initialized"; // triker, goal_keeper
+    string role = "not initialized"; // striker, supporter, keeper
     bool isAlive = false; // 是否在场上, 且没有在罚时中, 且通讯没有丢失
     bool ballDetected = false;
     bool ballLocationKnown = false;

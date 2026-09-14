@@ -113,7 +113,8 @@ bool kickoffTacticalPhase(Brain *brain)
 {
     return (brain->data->isKickingOff || brain->data->isOpponentKickingOff) &&
         brain->tree->getEntry<string>("gc_game_state") == "PLAY" &&
-        brain->tree->getEntry<string>("player_role") == "striker";
+        (brain->tree->getEntry<string>("player_role") == "striker" ||
+         brain->tree->getEntry<string>("player_role") == "supporter");
 }
 
 int kickoffGroupRank(Brain *brain)
@@ -1080,10 +1081,11 @@ NodeStatus GoToGoalBlockingPosition::tick() {
     string curRole = brain->tree->getEntry<string>("player_role");
 
     Pose2D targetPose;
-    targetPose.x = curRole == "striker" ? (std::max(- fd.length / 2.0 + distToGoalline, ballPos.x - 1.5))
+    const bool isFieldPlayer = curRole == "striker" || curRole == "supporter";
+    targetPose.x = isFieldPlayer ? (std::max(- fd.length / 2.0 + distToGoalline, ballPos.x - 1.5))
             : (- fd.length / 2.0 + distToGoalline);
     if (ballPos.x + fd.length / 2.0 < distToGoalline) {
-        targetPose.y = curRole == "striker" ? (ballPos.y > 0 ? fd.goalWidth / 2.0 : -fd.goalWidth / 2.0)
+    targetPose.y = isFieldPlayer ? (ballPos.y > 0 ? fd.goalWidth / 2.0 : -fd.goalWidth / 2.0)
             : (std::abs(ballPos.x + fd.length / 2.0) < 1e-4
                 ? (ballPos.y >= 0.0 ? fd.goalWidth / 2.0 : -fd.goalWidth / 2.0)
                 : std::clamp(
@@ -1092,7 +1094,7 @@ NodeStatus GoToGoalBlockingPosition::tick() {
                     fd.goalWidth / 2.0));
     } else {
         targetPose.y = ballPos.y * distToGoalline / (ballPos.x + fd.length / 2.0);
-        targetPose.y = curRole == "striker" ? (cap(targetPose.y, fd.goalWidth / 2.0, -fd.goalWidth / 2.0))
+        targetPose.y = isFieldPlayer ? (cap(targetPose.y, fd.goalWidth / 2.0, -fd.goalWidth / 2.0))
             : (cap(targetPose.y, fd.penaltyAreaWidth/ 2.0, -fd.penaltyAreaWidth / 2.0));
     }
 
@@ -1152,7 +1154,7 @@ NodeStatus Assist::tick() {
         }
         const auto &status = brain->data->tmStatus[i];
         if (status.isAlive
-            && status.role == "striker"
+            && (status.role == "striker" || status.role == "supporter")
             && status.cost < brain->data->tmMyCost) {
             ++strikerCostRank;
         }
@@ -2044,7 +2046,7 @@ NodeStatus Kick::onStart()
     string role = brain->tree->getEntry<string>("player_role");
     if (
         avoidPushing
-        && (role != "goal_keeper")
+        && (role != "keeper")
         && brain->data->robotPoseToField.x < brain->config->fieldDimensions.length / 2 - brain->config->fieldDimensions.goalAreaLength
         && brain->distToObstacle(brain->data->ball.yawToRobot) < kickAoSafeDist
     ) {
@@ -4231,7 +4233,7 @@ NodeStatus GoToReadyPosition::tick()
         _lockedTargetValid = false;
     }
 
-    if (role == "striker") {
+    if (role == "striker" || role == "supporter") {
         int strikerRank = brain->data->myStrikerIDRank;
         if (gameState == "READY") {
             strikerRank = 0;
@@ -4259,7 +4261,7 @@ NodeStatus GoToReadyPosition::tick()
             ty = - fd.circleRadius - 1.0;
             //ty = - fd.goalAreaWidth / 2.0;
         }
-    } else if (role == "goal_keeper") {
+    } else if (role == "keeper") {
         // 与 PLAY 阶段 GoalieIdleHome 的门线前约 1m 深度保持一致。
         tx = -fd.length / 2.0 + fd.goalAreaLength / 2.0;
         ty = 0;
@@ -4427,8 +4429,8 @@ NodeStatus RoleSwitchIfNeeded::tick()
         newRole = "striker";
     }
     else if (aliveCount == brain->config->numOfPlayers - 1) {
-        brain->tree->setEntry<string>("player_role", "goal_keeper");
-        newRole = "goal_keeper";
+        brain->tree->setEntry<string>("player_role", "keeper");
+        newRole = "keeper";
     }
      
     if (brain->tree->getEntry<string>("gc_game_state") == "INITIAL") {

@@ -28,7 +28,7 @@ public:
     int teamId;                 // 对应 game.team_id
     int playerId;               // 对应 game.player_id
     string fieldType;           // 对应 game.field_type  球场类型, "adult_size"(14*9) | "kid_size" (9*6)
-    string playerRole;          // 对应 game.player_role   "striker" | "goal_keeper"
+    string playerRole;          // 对应 game.player_role   "striker" | "supporter" | "keeper"
     string playerStartPos;      // 对应 game.player_start_post  "left" | "right", 从自己半场的左侧还是右侧上场
     
     double robotHeight;         // 对应 robot.robot_height 机器人的身高(m), 用于估算距离, 可以通过 SetParam 节点进行调试. In behaviortree xml: <SetParam code="robot_height=1.1" />

@@ -4,7 +4,7 @@ brain_node:
       team_id: 70 # consistant with GameControl
       player_id: 1 # 1 | 2 | 3
       field_type: "adult_size" # adult_size | kid_size | robo_league
-      player_role: "striker" # striker | goal_keeper
+      player_role: "striker" # striker | supporter | keeper
       player_start_pos: "right" # right | left
       treat_person_as_robot: false # 是否将人类视为机器人, 用于调试. !!!! 正式比赛时, 必须设置为 false !!!!
       number_of_players: 3
@@ -98,8 +98,8 @@ brain_node:
         max_total_ms: 14000.0
         max_extra_rounds: 1
       cooperation:
-        # 3v3 固定分工：1、2 号为前锋，3 号为守门员。
-        # fixed_goalie_player_id > 0 时优先级高于动态选角和 player_role。
+        # 3v3 固定分工：1 号 striker，2 号 supporter，3 号 keeper。
+        # fixed_goalie_player_id > 0 时按 player_id 固定上述角色，优先级高于动态选角和 player_role。
         enable_role_switch: false
         fixed_goalie_player_id: 3
         ball_control_cost_threshold: 5.0 

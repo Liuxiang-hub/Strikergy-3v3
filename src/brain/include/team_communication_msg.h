@@ -11,7 +11,7 @@ struct TeamCommunicationMsg
     int communicationId;
     int teamId;
     int playerId;
-    int playerRole; // 1: striker, 2: goal_keeper, 3: unknown
+    int playerRole; // 1: striker, 2: keeper, 3: supporter
     bool isAlive; // 是否在场上, 且没有在罚时中
     bool isLead; // 是否在控球状态
     bool ballDetected;

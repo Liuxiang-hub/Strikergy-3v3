@@ -476,7 +476,7 @@ void Brain::tick()
 void Brain::pubKickMsg() {
     if (!pubKickBall) return;
     const bool goalieVisualKick =
-        tree->getEntry<string>("player_role") == "goal_keeper" &&
+        tree->getEntry<string>("player_role") == "keeper" &&
         (data->goalieVisualKickSubState == "block_kick" ||
          data->goalieVisualKickSubState == "intercept_kick");
     const bool goalieInterceptTarget =
@@ -877,14 +877,24 @@ void Brain::handleCooperation() {
     data->activeGoaliePlayerId = selectedGoalieId;
 
     if (fixedGoalieEnabled) {
-        // Fixed 3v3 roles: the configured goalkeeper never hands the role to a striker.
-        tree->setEntry<string>("player_role",
-            selfId == fixedGoalieId ? "goal_keeper" : "striker");
+        // Fixed 3v3 roles: the lowest field-player ID attacks, the other supports,
+        // and the configured keeper never hands its role to a field player.
+        int strikerId = 0;
+        for (int id = 1; id <= numOfPlayers; ++id) {
+            if (id != fixedGoalieId) {
+                strikerId = id;
+                break;
+            }
+        }
+        const string fixedRole = selfId == fixedGoalieId
+            ? "keeper"
+            : (selfId == strikerId ? "striker" : "supporter");
+        tree->setEntry<string>("player_role", fixedRole);
     } else if (tree->getEntry<string>("gc_game_state") == "INITIAL" || !switchRole) {
         tree->setEntry<string>("player_role", config->playerRole);
     } else if (data->tmImAlive && selectedGoalieId > 0) {
         tree->setEntry<string>("player_role",
-            selectedGoalieId == selfId ? "goal_keeper" : "striker");
+            selectedGoalieId == selfId ? "keeper" : "striker");
     }
     log_(format("goalie election: selected=%d gc=%d healthy=%d stable=%d fallback=%d role=%s",
         selectedGoalieId, data->goalkeeperPlayerId,
@@ -896,17 +906,19 @@ void Brain::handleCooperation() {
     int myCostRank = 0;
     int myStrikerCostRank = 0;
     int myStrikerIDRank = 0;
-    const bool selfIsStriker = tree->getEntry<string>("player_role") == "striker";
+    const string currentRole = tree->getEntry<string>("player_role");
+    const bool selfIsStriker = currentRole == "striker" || currentRole == "supporter";
     for (int tmIdx : aliveTmIdxs) {
         const auto &tm = data->tmStatus[tmIdx];
         const bool teammateRanksAhead =
             tm.cost < data->tmMyCost - COST_TIE_EPS ||
             (std::fabs(tm.cost - data->tmMyCost) <= COST_TIE_EPS && tmIdx + 1 < selfId);
         if (teammateRanksAhead) ++myCostRank;
-        if (selfIsStriker && tm.role == "striker" && teammateRanksAhead) {
+        const bool teammateIsFieldPlayer = tm.role == "striker" || tm.role == "supporter";
+        if (selfIsStriker && teammateIsFieldPlayer && teammateRanksAhead) {
             ++myStrikerCostRank;
         }
-        if (tmIdx < selfIdx && tm.role == "striker") ++myStrikerIDRank;
+        if (tmIdx < selfIdx && teammateIsFieldPlayer) ++myStrikerIDRank;
     }
     data->tmMyCostRank = myCostRank;
     data->tmMyStrikerCostRank = selfIsStriker ? myStrikerCostRank : 0;
@@ -935,21 +947,21 @@ void Brain::handleCooperation() {
     const double goalieClaimBallX = -config->fieldDimensions.circleRadius - 2.0;
     const string selfRole = tree->getEntry<string>("player_role");
     const bool selfGoalieClaimsBall =
-        selfRole == "goal_keeper" &&
+        selfRole == "keeper" &&
         (data->tmImInVisualKick ||
          (data->ballDetected && !data->lose_ball && std::isfinite(data->ball.range) &&
           data->ball.range < 1.5 && data->ball.posToField.x < goalieClaimBallX));
-    if (selfRole == "striker" || selfGoalieClaimsBall) {
+    if (selfRole == "striker" || selfRole == "supporter" || selfGoalieClaimsBall) {
         ownerCandidates.push_back({selfId, data->tmMyCost, data->tmImInVisualKick});
     }
     for (int tmIdx : aliveTmIdxs) {
         const auto &tm = data->tmStatus[tmIdx];
         const bool teammateGoalieClaimsBall =
-            tm.role == "goal_keeper" &&
+            tm.role == "keeper" &&
             (tm.isInVisualKick ||
              (tm.ballDetected && std::isfinite(tm.ballRange) && tm.ballRange < 1.5 &&
               tm.ballPosToField.x < goalieClaimBallX));
-        if (tm.role == "striker" || teammateGoalieClaimsBall) {
+        if (tm.role == "striker" || tm.role == "supporter" || teammateGoalieClaimsBall) {
             ownerCandidates.push_back({tmIdx + 1,
                 std::isfinite(tm.cost) ? tm.cost : 1e9,
                 tm.isInVisualKick});
@@ -988,7 +1000,7 @@ void Brain::handleCooperation() {
         goalieAttackHandoffEnabled &&
         !fixedGoalieEnabled &&
         data->tmImAlive 
-        && tree->getEntry<string>("player_role") == "goal_keeper"
+        && tree->getEntry<string>("player_role") == "keeper"
         && data->ballDetected
         && !data->lose_ball
         && data->ball.range < 1.2
@@ -1040,7 +1052,7 @@ void Brain::handleCooperation() {
             directedGoalieUntil = get_clock()->now() + rclcpp::Duration::from_nanoseconds(6000000000LL);
             if (newGoalieId == selfId) { 
                 log_("i become goalie");
-                tree->setEntry<string>("player_role", "goal_keeper");
+                tree->setEntry<string>("player_role", "keeper");
                 speak("i become goalie", true);
             } else { 
                 log_(format("teammate %d becomes goalie", newGoalieId));
@@ -1496,7 +1508,7 @@ bool Brain::isAngleGood(double goalPostMargin, string type) {
 
 bool Brain::isPrimaryStriker() {
     string myRole = tree->getEntry<string>("player_role");
-    if (myRole != "striker") return false; 
+    if (myRole != "striker" && myRole != "supporter") return false;
 
     if (!config->enableCom) return true; 
 
@@ -1506,7 +1518,8 @@ bool Brain::isPrimaryStriker() {
 
     for (int i = 0; i < HL_MAX_NUM_PLAYERS; i++) {
         auto status = data->tmStatus[i];
-        if (data->penalty[i] == PENALTY_NONE && status.isAlive && status.role == "striker") {
+        if (data->penalty[i] == PENALTY_NONE && status.isAlive
+            && (status.role == "striker" || status.role == "supporter")) {
             firstAliveStrikerIdx = i;
             break;
         }
@@ -1975,7 +1988,7 @@ void Brain::joystickCallback(const booster_interface::msg::RemoteControllerState
         else if (joy.y)
         {
             string curRole = tree->getEntry<string>("player_role");
-            curRole == "striker" ? tree->setEntry<string>("player_role", "goal_keeper") : tree->setEntry<string>("player_role", "striker");
+            curRole == "keeper" ? tree->setEntry<string>("player_role", "striker") : tree->setEntry<string>("player_role", "keeper");
             prtDebug("SWITCH ROLE");
             log_("SWITCH ROLE");
             // playSound("talk");

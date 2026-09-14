@@ -231,10 +231,10 @@ void BrainConfig::handle()
         throw invalid_argument("palyer_start_pos must be one of [left, right]. Got: " + playerStartPos);
     }
 
-    // playerRole [striker, goal_keeper]
-    if (playerRole != "striker" && playerRole != "goal_keeper")
+    // playerRole [striker, supporter, keeper]
+    if (playerRole != "striker" && playerRole != "supporter" && playerRole != "keeper")
     {
-        throw invalid_argument("player_role must be one of [striker, goal_keeper]. Got: " + playerRole);
+        throw invalid_argument("player_role must be one of [striker, supporter, keeper]. Got: " + playerRole);
     }
 
     // playerId

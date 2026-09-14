@@ -12,6 +12,8 @@ Strikergy 的 Booster K1 RoboCup 3v3 比赛源码仓库。
 - Number of players: `3`
 - Field type: `adult_size`（14.16 m × 9.22 m）
 
+固定角色命名：1 号 `striker`、2 号 `supporter`、3 号 `keeper`。
+
 每台机器人部署前必须单独设置唯一的 `player_id` 和正确的 `player_role`。裁判机 IP 白名单也应按现场网络修改，不要直接把同一份机器人身份配置复制到全队。
 
 ## 构建
