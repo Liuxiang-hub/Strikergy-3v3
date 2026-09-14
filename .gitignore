@@ -1,0 +1,35 @@
+# ROS 2 / colcon output
+build/
+install/
+log/
+
+# Runtime logs and recordings
+*.log
+rrlog/
+vision_log/
+
+# Local dependencies and caches
+.deps/
+.cache/
+__pycache__/
+*.py[cod]
+
+# Deployment-only models and prebuilt libraries
+*.engine
+*.onnx
+*.so
+*.so.*
+*.a
+
+# Editors and operating systems
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Local credentials and connection data
+known_hosts
+*.pem
+*.key
+.env
+.env.*
