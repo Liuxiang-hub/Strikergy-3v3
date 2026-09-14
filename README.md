@@ -34,6 +34,8 @@ Strikergy 的 Booster K1 RoboCup 3v3 比赛源码仓库。
 ./scripts/stop.sh
 ```
 
+机器人从开机、SSH 检查、编译、启动、入场定位、遥控器操作到裁判机比赛状态的完整说明，参见 [机器人开机与比赛操作流程](docs/ROBOT_STARTUP_GUIDE.md)。
+
 ## 部署原则
 
 本仓库是策略代码的唯一主版本。修改先提交并推送到 GitHub；机器人开机后再从对应提交同步、编译和现场验证。
