@@ -1314,7 +1314,12 @@ NodeStatus KickoffStand::tick()
     const double oppGoalX = fd.length / 2.0;
     Pose2D targetPose{0.0, 0.0, 0.0};
 
-    if (rank >= 2) {
+    if (brain->config->numOfPlayers == 3) {
+        // In 3v3 only rank 0 attacks. The other striker stays behind and to one
+        // side of the ball, providing a passing option without joining the duel.
+        targetPose.x = ballPos.x - 2.0;
+        targetPose.y = ballPos.y + (brain->config->playerId % 2 == 0 ? -1.5 : 1.5);
+    } else if (rank >= 2) {
         // 己方半区分组：在己方大禁区前沿左右分开待命。
         targetPose.x = ownGoalX + fd.penaltyAreaLength + 0.4;
         targetPose.y = rank == 2 ? 1.5 : -1.5;
@@ -1546,8 +1551,11 @@ NodeStatus StrikerDecide::tick() {
     const bool ballInOpponentHalf = kickoffBallInOpponentHalf(brain, kickoffBallKnown);
     const int kickoffRank = kickoffGroupRank(brain);
     const bool assignedOpponentHalf = kickoffRank >= 0 && kickoffRank < 2;
+    const bool isThreePlayerTeam = brain->config->numOfPlayers == 3;
     const bool kickoffAttack = kickoffPhase &&
-        (assignedOpponentHalf == ballInOpponentHalf);
+        (isThreePlayerTeam
+            ? kickoffRank == 0
+            : assignedOpponentHalf == ballInOpponentHalf);
     const bool kickoffHold = kickoffPhase && !kickoffAttack;
 
     // No strategy calculation below may consume a placeholder ball. During a

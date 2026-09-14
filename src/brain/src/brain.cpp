@@ -175,6 +175,7 @@ Brain::Brain() : rclcpp::Node("brain_node")
     declare_parameter<double>("strategy.shoot.ymin", -0.5);
     declare_parameter<double>("strategy.shoot.ymax", 0.5);
     declare_parameter<bool>("strategy.cooperation.enable_role_switch", true);
+    declare_parameter<int>("strategy.cooperation.fixed_goalie_player_id", 0);
     declare_parameter<double>("strategy.cooperation.ball_control_cost_threshold", 10.0);
     declare_parameter<double>("strategy.cooperation.goalie_comm_fresh_msecs", 2200.0);
     declare_parameter<double>("strategy.cooperation.goalie_comm_stable_msecs", 1000.0);
@@ -863,15 +864,23 @@ void Brain::handleCooperation() {
     bool goalieCommHealthy = false;
     bool goalieStable = false;
     bool goalieFallback = true;
-    int selectedGoalieId = selectGoaliePlayerId(
-        &goalieCommHealthy, &goalieStable, &goalieFallback);
-    if (directedGoalieId > 0 && directedGoalieId <= numOfPlayers &&
+    const int fixedGoalieId = get_parameter(
+        "strategy.cooperation.fixed_goalie_player_id").as_int();
+    const bool fixedGoalieEnabled = fixedGoalieId >= 1 && fixedGoalieId <= numOfPlayers;
+    int selectedGoalieId = fixedGoalieEnabled
+        ? fixedGoalieId
+        : selectGoaliePlayerId(&goalieCommHealthy, &goalieStable, &goalieFallback);
+    if (!fixedGoalieEnabled && directedGoalieId > 0 && directedGoalieId <= numOfPlayers &&
         data->penalty[directedGoalieId - 1] == PENALTY_NONE) {
         selectedGoalieId = directedGoalieId;
     }
     data->activeGoaliePlayerId = selectedGoalieId;
 
-    if (tree->getEntry<string>("gc_game_state") == "INITIAL" || !switchRole) {
+    if (fixedGoalieEnabled) {
+        // Fixed 3v3 roles: the configured goalkeeper never hands the role to a striker.
+        tree->setEntry<string>("player_role",
+            selfId == fixedGoalieId ? "goal_keeper" : "striker");
+    } else if (tree->getEntry<string>("gc_game_state") == "INITIAL" || !switchRole) {
         tree->setEntry<string>("player_role", config->playerRole);
     } else if (data->tmImAlive && selectedGoalieId > 0) {
         tree->setEntry<string>("player_role",
@@ -977,6 +986,7 @@ void Brain::handleCooperation() {
         "strategy.cooperation.goalie_attack_handoff").as_bool();
     if (
         goalieAttackHandoffEnabled &&
+        !fixedGoalieEnabled &&
         data->tmImAlive 
         && tree->getEntry<string>("player_role") == "goal_keeper"
         && data->ballDetected

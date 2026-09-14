@@ -98,13 +98,16 @@ brain_node:
         max_total_ms: 14000.0
         max_extra_rounds: 1
       cooperation:
-        enable_role_switch: true 
+        # 3v3 固定分工：1、2 号为前锋，3 号为守门员。
+        # fixed_goalie_player_id > 0 时优先级高于动态选角和 player_role。
+        enable_role_switch: false
+        fixed_goalie_player_id: 3
         ball_control_cost_threshold: 5.0 
         goalie_comm_fresh_msecs: 2200.0
         goalie_comm_stable_msecs: 1000.0
         goalie_distance_tie_margin: 0.15
         goalie_fallback_use_gc_goalie: true # 通信暂时不完整时优先沿用裁判机守门员，避免错误球员跑向门前
-        goalie_attack_handoff: true
+        goalie_attack_handoff: false
       far_set_play_search:
         enable: true                 # 任一方门球/角球很远且看不到球时，先去球应出现的半场搜索
         trigger_x: 0.5               # 越过中线至少 0.5 m 才算进入目标半场，避免在中线附近反复切换
