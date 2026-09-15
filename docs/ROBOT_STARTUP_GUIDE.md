@@ -2,11 +2,13 @@
 
 本文适用于 Strikergy 的 Booster K1 3v3 队伍。当前固定分工为：
 
-| 机器人 | `player_id` | `player_role` | 职责 |
-| --- | ---: | --- | --- |
-| 1 号 | `1` | `striker` | 主前锋，优先追球和进攻 |
-| 2 号 | `2` | `supporter` | 支援前锋，主攻手控球时主动让位和接应 |
-| 3 号 | `3` | `keeper` | 固定守门员 |
+| 机器人 | 机身编号 | `player_id` | `player_role` | 职责 |
+| --- | --- | ---: | --- | --- |
+| 1 号 | `60035`（完整序列号尾号） | `1` | `striker` | 主前锋，优先追球和进攻 |
+| 2 号 | `60023`（完整序列号尾号） | `2` | `supporter` | 支援前锋，主攻手控球时主动让位和接应 |
+| 3 号 | 待登记 | `3` | `keeper` | 固定守门员 |
+
+> 机器人编号以机身序列号为准，IP 可能随网络变化，不能把某个 IP 永久当作机器人编号。当前已确认：序列号尾号 `60035` 是 1 号，尾号 `60023` 是 2 号。
 
 > 安全要求：机器人必须放在平整、宽阔、无人的区域，操作员全程拿着遥控器，并能随时按 `L2 + X` 停止自动策略。第一次运行、修改策略或更新固件后，先单机空场测试，不要直接三机同时上场。
 
@@ -30,6 +32,14 @@ ssh booster@<机器人IP>
 
 ```bash
 booster-cli version
+```
+
+连接多台机器人时，先根据机身标签或设备序列号核对身份，再修改配置；不要只根据 IP 判断。当前固定映射为：
+
+```text
+60035 -> 1号 -> player_id 1 -> striker
+60023 -> 2号 -> player_id 2 -> supporter
+3号   -> player_id 3 -> keeper（机身编号待登记）
 ```
 
 进入部署目录。下方以 `/home/booster/Workspace/Strikergy-3v3` 为例；如果真机上的文件夹名称不同，请替换成实际路径：
@@ -65,10 +75,26 @@ grep -A 8 "game:" src/brain/config/config.yaml
 ```bash
 cd /home/booster/Workspace/Strikergy-3v3
 ./scripts/stop.sh
+source /opt/ros/humble/setup.bash
+export CUDACXX=/usr/local/cuda-12.6/bin/nvcc
+export PATH=/usr/local/cuda-12.6/bin:$PATH
 ./scripts/build.sh
 ```
 
 等待终端出现 `Build complete`，并确认没有 `Failed`、`error` 或缺少依赖/模型的提示。
+
+上述 ROS 2 和 CUDA 环境变量是在当前两台真机上验证过的。首次全量编译通常需要约 5～8 分钟；只修改 `src/brain` 策略后增量编译通常为几十秒到 2 分钟；只修改 `config.yaml` 不需要重新编译，停止并重新启动 Demo 即可生效。
+
+每次比赛前还应确认机器人当前代码确实来自本队 GitHub：
+
+```bash
+git remote -v
+git branch -vv
+git rev-parse --short HEAD
+git status --short
+```
+
+远程仓库应为 `https://github.com/Liuxiang-hub/Strikergy-3v3.git`。两台机器人可以共用同一策略提交，但 `src/brain/config/config.yaml` 中的 `player_id` 和 `player_role` 必须按上表保留各自配置；同步代码时不要误把另一台机器人的配置覆盖过来。
 
 本 GitHub 仓库只保存策略源码，不包含真机 TensorRT/ONNX 模型和部分平台依赖。部署时必须以已经能运行的 K1 Demo 1.7 真机环境为基础，保留机器人本地的模型、SDK 和预编译依赖。仅仅“编译通过”不代表已经具备完整比赛条件。
 
