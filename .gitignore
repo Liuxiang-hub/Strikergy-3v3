@@ -33,3 +33,7 @@ known_hosts
 *.key
 .env
 .env.*
+
+# Per-robot identity marker. This is provisioned once on each robot and must
+# never be shared by git because it selects that machine's player identity.
+.robot_identity

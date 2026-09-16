@@ -34,7 +34,7 @@ ssh booster@<机器人IP>
 booster-cli version
 ```
 
-连接多台机器人时，先根据机身标签或设备序列号核对身份，再修改配置；不要只根据 IP 判断。当前固定映射为：
+连接多台机器人时，先根据机身标签或设备序列号核对身份；不要只根据 IP 判断。当前固定映射为：
 
 ```text
 60035 -> 1号 -> player_id 1 -> striker
@@ -49,11 +49,23 @@ cd /home/booster/Workspace/Strikergy-3v3
 pwd
 ```
 
-检查当前机器人身份：
+每台机器人首次部署时，在仓库根目录创建一次本机身份文件。该文件已被 Git 忽略，后续 `git pull` 不会覆盖：
 
 ```bash
-grep -A 8 "game:" src/brain/config/config.yaml
+# 仅在机身编号尾号为 60035 的 1 号机器人执行
+printf '60035\n' > .robot_identity
+
+# 仅在机身编号尾号为 60023 的 2 号机器人执行
+printf '60023\n' > .robot_identity
 ```
+
+不要在同一台机器人上同时执行两条命令。创建后检查自动映射结果：
+
+```bash
+./scripts/select_robot_config.sh
+```
+
+预期分别输出 `player_id=1, player_role=striker` 或 `player_id=2, player_role=supporter`。身份缺失或未知时，`start.sh` 会在停止任何服务之前拒绝启动，防止两台机器人使用相同的 `player_id`。
 
 重点确认：
 
@@ -94,7 +106,7 @@ git rev-parse --short HEAD
 git status --short
 ```
 
-远程仓库应为 `https://github.com/Liuxiang-hub/Strikergy-3v3.git`。两台机器人可以共用同一策略提交，但 `src/brain/config/config.yaml` 中的 `player_id` 和 `player_role` 必须按上表保留各自配置；同步代码时不要误把另一台机器人的配置覆盖过来。
+远程仓库应为 `https://github.com/Liuxiang-hub/Strikergy-3v3.git`。两台机器人共用同一策略提交；本机的 `.robot_identity` 自动选择 `configs/robots/<机身编号>.conf`，并在启动时覆盖公共 `config.yaml` 中的默认 `player_id` 和 `player_role`。因此不要提交 `.robot_identity`，也不要为了区分机器人而分别修改公共配置。
 
 本 GitHub 仓库只保存策略源码，不包含真机 TensorRT/ONNX 模型和部分平台依赖。部署时必须以已经能运行的 K1 Demo 1.7 真机环境为基础，保留机器人本地的模型、SDK 和预编译依赖。仅仅“编译通过”不代表已经具备完整比赛条件。
 
@@ -107,7 +119,7 @@ cd /home/booster/Workspace/Strikergy-3v3
 ./scripts/start.sh
 ```
 
-`start.sh` 会停止可能冲突的旧进程，然后启动：
+`start.sh` 会先验证 `.robot_identity` 并显示选中的机器人编号、`player_id` 和角色；验证通过后才会停止可能冲突的旧进程，然后启动：
 
 1. `vision`：识别足球、场地标线、交点、门柱和机器人。
 2. `brain`：运行 `game.xml` 比赛行为树。

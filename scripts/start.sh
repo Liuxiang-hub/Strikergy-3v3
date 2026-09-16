@@ -5,6 +5,16 @@ cd ..
 WORKSPACE_ROOT=$(pwd)
 VISION_CONFIG_PATH="${WORKSPACE_ROOT}/src/vision/config"
 
+# Resolve the local robot marker before stopping services or changing robot
+# state. Unknown identities fail closed so duplicate player IDs cannot enter a
+# match. The marker is intentionally ignored by git and survives git pull.
+if ! read -r ROBOT_SERIAL_SUFFIX ROBOT_PLAYER_ID ROBOT_PLAYER_ROLE \
+    < <(./scripts/select_robot_config.sh --values); then
+    echo "[ABORT] Robot identity validation failed; no services were changed."
+    exit 20
+fi
+echo "[ROBOT IDENTITY] ${ROBOT_SERIAL_SUFFIX}: player ${ROBOT_PLAYER_ID}, role ${ROBOT_PLAYER_ROLE}"
+
 echo "[STOP EXISTING NODES (IF ANY), TO AVOID CONFILICT]"
 sudo killall -9 booster-video-stream
 # sudo systemctl stop booster-rtc-speech.service
@@ -34,7 +44,8 @@ nohup ros2 launch vision launch.py save_data:=true > vision.log 2>&1 &
 # nohup ros2 run ros2_sync_package sync_node > sync_node.log 2>&1 &
 # nohup sh src/vision_segmentation/run.sh > vision_segmentation.log 2>&1 &
 echo "[START BRAIN]"
-nohup ros2 launch brain launch.py "$@" > brain.log 2>&1 &
+nohup ros2 launch brain launch.py "$@" \
+    player_id:="${ROBOT_PLAYER_ID}" role:="${ROBOT_PLAYER_ROLE}" > brain.log 2>&1 &
 # nohup ros2 launch brain launch.py "$@"  > brain.log 2>&1 &
 echo "[START GAME_CONTROLLER]"
 nohup ros2 launch game_controller launch.py > game_controller.log 2>&1 &

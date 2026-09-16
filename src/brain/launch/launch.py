@@ -58,6 +58,15 @@ def handle_configuration(context, *args, **kwargs):
     role = context.perform_substitution(LaunchConfiguration('role'))
     if role:
         config['game.player_role'] = role
+    player_id = context.perform_substitution(LaunchConfiguration('player_id')).strip()
+    if player_id:
+        try:
+            player_id_value = int(player_id)
+        except ValueError as exc:
+            raise RuntimeError(f"player_id must be an integer, got '{player_id}'") from exc
+        if player_id_value < 1 or player_id_value > 3:
+            raise RuntimeError(f"player_id must be between 1 and 3, got {player_id_value}")
+        config['game.player_id'] = player_id_value
 
     sim = context.perform_substitution(LaunchConfiguration('sim'))
     if sim in ['true', 'True', '1']:
@@ -108,6 +117,11 @@ def generate_launch_description():
             'role', 
             default_value='',
             description='如果需要覆盖 config.yaml 中的 game.player_role, 可以在 launch 时指定参数 role:=striker'
+        ),
+        DeclareLaunchArgument(
+            'player_id',
+            default_value='',
+            description='Override game.player_id for the local physical robot (1, 2, or 3)'
         ),
         DeclareLaunchArgument(
             'sim', 
