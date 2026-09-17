@@ -116,6 +116,12 @@ Brain::Brain() : rclcpp::Node("brain_node")
     declare_parameter<double>("strategy.near_ball_range", 4.0);
     declare_parameter<bool>("strategy.soft_kickoff", true);
     declare_parameter<double>("strategy.soft_kickoff_speed", 0.3);
+    declare_parameter<bool>("strategy.own_kickoff_power_shoot.enable", true);
+    declare_parameter<double>("strategy.own_kickoff_power_shoot.ready_distance", 1.0);
+    declare_parameter<double>("strategy.own_kickoff_power_shoot.ball_x_min", 0.20);
+    declare_parameter<double>("strategy.own_kickoff_power_shoot.ball_x_max", 0.45);
+    declare_parameter<double>("strategy.own_kickoff_power_shoot.ball_y_max", 0.18);
+    declare_parameter<double>("strategy.own_kickoff_power_shoot.direction_error", 0.20);
     declare_parameter<double>("strategy.kick_range", 1.0);
     declare_parameter<double>("strategy.kick_theta_range", 0.2);
     declare_parameter<bool>("strategy.abort_kick_when_ball_moved", false);

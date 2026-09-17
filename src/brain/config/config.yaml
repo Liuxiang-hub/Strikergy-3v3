@@ -36,6 +36,15 @@ brain_node:
       near_ball_range: 2.0 
       soft_kickoff: true          # 所有开球(比赛开球/任意球/角球/门球)均用软速度，降低出界/失误风险
       soft_kickoff_speed: 0.3
+      # 我方普通开球：READY 时主罚者站在中圈球后约 1 m；PLAY 后小步调整，
+      # 足球进入固定强力射门动作的脚前窗口时，只调用一次公开 SDK Shoot。
+      own_kickoff_power_shoot:
+        enable: true
+        ready_distance: 1.0
+        ball_x_min: 0.20
+        ball_x_max: 0.45
+        ball_y_max: 0.18
+        direction_error: 0.20
       kick_range: 1.0 
       kick_theta_range: 0.2 
       abort_kick_when_ball_moved: true 

@@ -13,6 +13,7 @@ namespace {
 // API IDs for RL skills.
 // kVisualKick must match the public SDK: booster::robot::b1::LocoApiId::kVisualKick = 2038
 constexpr int64_t kApiIdEnableVisualKickMode = 2038;   // kVisualKick (public SDK)
+constexpr int64_t kApiIdShoot                = 2024;   // kShoot (public SDK)
 constexpr int64_t kApiIdRLKickBall           = 100011;  // kRLKickBall (internal SDK)
 constexpr int64_t kApiIdRLFancyKickBall      = 100012;  // kRLFancyKickBall (internal SDK)
 constexpr int kGetUpVersionV1 = 0;
@@ -99,6 +100,19 @@ int RobotClient::kickBall(double kick_speed, double kick_dir, bool cancel)
     msg.api_id = kApiIdRLKickBall;
     msg.body = param;
 
+    return call(msg);
+}
+
+int RobotClient::shoot()
+{
+    // Shoot is a fixed firmware action. Stop locomotion first so a stale walk
+    // command cannot compete with the body-control state transition.
+    setVelocity(0.0, 0.0, 0.0, false, false, false);
+
+    booster_interface::msg::BoosterApiReqMsg msg;
+    msg.api_id = kApiIdShoot;
+    // Match B1LocoClient::Shoot(): the public SDK sends an empty request body.
+    msg.body = "";
     return call(msg);
 }
 

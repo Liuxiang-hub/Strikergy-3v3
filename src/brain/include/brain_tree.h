@@ -325,12 +325,15 @@ class Shoot : public StatefulActionNode
 {
 public:
     Shoot(const string &name, const NodeConfig &config, Brain *_brain) : StatefulActionNode(name, config), brain(_brain) {}
-    static PortsList providedPorts() { return { InputPort<double>("msecs", 2000, ""), InputPort<double>("speed", 0.0, "") }; }
-    NodeStatus onStart() override { return NodeStatus::SUCCESS; }
-    NodeStatus onRunning() override { return NodeStatus::SUCCESS; }
-    void onHalted() override {};
+    static PortsList providedPorts() { return { InputPort<double>("msecs", 3000, "固件强力射门动作保护时间") }; }
+    NodeStatus onStart() override;
+    NodeStatus onRunning() override;
+    void onHalted() override;
 private:
     Brain *brain;
+    rclcpp::Time _startTime;
+    double _msecs = 3000.0;
+    bool _commandSent = false;
 };
 
 class RLVisionKick : public StatefulActionNode

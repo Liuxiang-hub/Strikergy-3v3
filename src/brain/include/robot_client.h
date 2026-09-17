@@ -114,6 +114,11 @@ public:
     int kickBall(double kick_speed = 1.0, double kick_dir = 0.0, bool cancel = false);
 
     /**
+     * @brief 调用固件预置的强力射门动作（公开 SDK Shoot / API 2024）
+     */
+    int shoot();
+
+    /**
      * @brief 恢复行走模式
      */
     int walkMode();

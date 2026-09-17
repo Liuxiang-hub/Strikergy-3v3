@@ -212,6 +212,7 @@ void BrainTree::init()
     REGISTER_BUILDER(WaveHand)
     REGISTER_BUILDER(MoveHead)
     REGISTER_BUILDER(CheckAndStandUp)
+    REGISTER_BUILDER(Shoot)
     REGISTER_BUILDER(RLVisionKick)
     REGISTER_BUILDER(Intercept2)
 
@@ -1366,6 +1367,49 @@ NodeStatus KickoffStand::tick()
     return NodeStatus::SUCCESS;
 }
 
+NodeStatus Shoot::onStart()
+{
+    getInput("msecs", _msecs);
+    _msecs = std::clamp(_msecs, 1000.0, 8000.0);
+    _startTime = brain->get_clock()->now();
+    _commandSent = false;
+
+    brain->client->setVelocity(0.0, 0.0, 0.0, false, false, false);
+    const int ret = brain->client->shoot();
+    if (ret != 0) {
+        prtErr(format("kickoff Shoot request failed: %d", ret));
+        return NodeStatus::FAILURE;
+    }
+
+    _commandSent = true;
+    brain->log->logToScreen(
+        "tree/Shoot", "Own kickoff: firmware power shoot requested", 0xFF00FFFF);
+    return NodeStatus::RUNNING;
+}
+
+NodeStatus Shoot::onRunning()
+{
+    // Do not publish walking commands while the firmware owns the body for the
+    // fixed shoot action. The guard time also prevents repeated trigger calls.
+    if (brain->msecsSince(_startTime) < _msecs) {
+        return NodeStatus::RUNNING;
+    }
+
+    brain->data->isKickingOff = false;
+    _commandSent = false;
+    return NodeStatus::SUCCESS;
+}
+
+void Shoot::onHalted()
+{
+    // Shoot has no public cancel API. Mark the normal kickoff phase complete so
+    // a reactive-tree restart cannot fire a second request.
+    if (_commandSent) {
+        brain->data->isKickingOff = false;
+    }
+    _commandSent = false;
+}
+
 
 NodeStatus Adjust::tick()
 {
@@ -1560,6 +1604,28 @@ NodeStatus StrikerDecide::tick() {
             : assignedOpponentHalf == ballInOpponentHalf);
     const bool kickoffHold = kickoffPhase && !kickoffAttack;
 
+    bool ownKickoffPowerShootEnabled = true;
+    double kickoffShootXMin = 0.20;
+    double kickoffShootXMax = 0.45;
+    double kickoffShootYMax = 0.18;
+    double kickoffShootDirectionError = 0.20;
+    brain->get_parameter(
+        "strategy.own_kickoff_power_shoot.enable", ownKickoffPowerShootEnabled);
+    brain->get_parameter(
+        "strategy.own_kickoff_power_shoot.ball_x_min", kickoffShootXMin);
+    brain->get_parameter(
+        "strategy.own_kickoff_power_shoot.ball_x_max", kickoffShootXMax);
+    brain->get_parameter(
+        "strategy.own_kickoff_power_shoot.ball_y_max", kickoffShootYMax);
+    brain->get_parameter(
+        "strategy.own_kickoff_power_shoot.direction_error", kickoffShootDirectionError);
+    const bool ownNormalKickoffPowerShoot =
+        ownKickoffPowerShootEnabled
+        && brain->data->isKickingOff
+        && brain->tree->getEntry<bool>("gc_is_kickoff_side")
+        && brain->data->realGameSubState == "NONE"
+        && kickoffRank == 0;
+
     // No strategy calculation below may consume a placeholder ball. During a
     // kickoff we can still choose the latched stand group without a live ball.
     if (!kickoffBallKnown) {
@@ -1661,7 +1727,30 @@ NodeStatus StrikerDecide::tick() {
         visualKickDirectionReady &&
         visualKickNearRealBall(brain);
 
-    if (nearBallVisualKick)
+    if (ownNormalKickoffPowerShoot)
+    {
+        // READY places the kicker about 1 m behind the centre ball. Once PLAY
+        // starts, walk into the fixed Shoot action's usable ball window, align
+        // with the requested kick direction, then fire exactly one SDK Shoot.
+        if (ballRange > std::max(0.60, kickoffShootXMax + 0.15)) {
+            newDecision = "chase";
+            color = 0x00FFFFFF;
+        } else if (
+            ballX >= kickoffShootXMin
+            && ballX <= kickoffShootXMax
+            && fabs(ballY) <= kickoffShootYMax
+            && fabs(deltaDir) <= kickoffShootDirectionError) {
+            newDecision = "kickoff_power_shoot";
+            color = 0xFF00FFFF;
+        } else {
+            newDecision = "adjust";
+            color = 0xFFFF00FF;
+        }
+        log(format(
+            "own kickoff power shoot: decision=%s ball=(%.2f, %.2f) deltaDir=%.2f",
+            newDecision.c_str(), ballX, ballY, deltaDir));
+    }
+    else if (nearBallVisualKick)
     {
         // 近球是本机的即时优先级，不再受 lead、cost rank 或开球待命分组限制。
         newDecision = "auto_visual_kick";
@@ -4246,7 +4335,12 @@ NodeStatus GoToReadyPosition::tick()
             strikerRank = std::clamp(strikerRank, 0, 3);
         }
         if (strikerRank == 0) {
-            tx = isKickoff ? - fd.circleRadius : - fd.circleRadius * 2;
+            double kickoffReadyDistance = 1.0;
+            brain->get_parameter(
+                "strategy.own_kickoff_power_shoot.ready_distance",
+                kickoffReadyDistance);
+            kickoffReadyDistance = std::clamp(kickoffReadyDistance, 0.8, 2.0);
+            tx = isKickoff ? -kickoffReadyDistance : -fd.circleRadius * 2;
             ty = 0.0;
         } else if (strikerRank == 1) {
             tx = isKickoff ? - fd.circleRadius : - fd.circleRadius * 2;
